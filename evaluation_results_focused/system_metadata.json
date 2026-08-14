@@ -1,0 +1,25 @@
+{
+  "evaluation_scope": [
+    "predictive performance",
+    "runtime overhead",
+    "memory overhead",
+    "communication overhead",
+    "threshold access structure",
+    "server-visible confidentiality demonstration",
+    "authorized query correctness and policy gate"
+  ],
+  "rounds": 5,
+  "repeats": 3,
+  "python": "3.10.12 (main, Jun 22 2026, 18:55:27) [GCC 11.4.0]",
+  "platform": "Linux-5.15.146.1-microsoft-standard-WSL2-x86_64-with-glibc2.35",
+  "cpu_count": 4,
+  "torch_version": "2.1.0+cpu",
+  "numpy_version": "1.26.4",
+  "methodological_notes": [
+    "Baseline and Hybrid PET run in separate fresh subprocesses for fairer peak-RSS comparison.",
+    "Both protocols use identical data splits, model initialization, local training, and random seeds.",
+    "The confidentiality tests are empirical demonstrations, not formal semantic-security proofs.",
+    "The authorization gate models the committee policy that only the registered query is approved; the current core cryptographic code does not itself bind authorization identities to query ciphertexts.",
+    "The threshold tests validate the simulated 3-of-5 LISS logic, not physical isolation of shares on separate machines."
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "protocol": "baseline",
+  "repeat": 2,
+  "protocol_wall_seconds": 17.139425511995796,
+  "protocol_rss_start_bytes": 386531328,
+  "protocol_rss_end_bytes": 413167616,
+  "protocol_peak_rss_bytes": 413167616,
+  "protocol_peak_rss_delta_bytes": 26636288,
+  "protocol_peak_python_bytes": 0
+}

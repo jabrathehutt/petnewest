@@ -1,0 +1,10 @@
+test,authorized,execution_attempted,passed,expected_scalar,recovered_scalar,absolute_error,values_released,aggregate_dimension,interpretation,repeat
+registered query correctness,True,True,True,7.0,7.0,0.0,1,28,The approved encrypted query releases the correct scalar only.,0
+unregistered query policy rejection,False,False,True,,,,0,28,The evaluation harness models committee authorization by rejecting a changed query fingerprint before evaluation/decryption.,0
+functional-output disclosure reduction,True,True,True,7.0,7.0,0.0,1,28,The query path releases one scalar instead of the full d-dimensional aggregate; the separate model path still releases the aggregate to update the model.,0
+registered query correctness,True,True,True,7.0,7.0,0.0,1,28,The approved encrypted query releases the correct scalar only.,1
+unregistered query policy rejection,False,False,True,,,,0,28,The evaluation harness models committee authorization by rejecting a changed query fingerprint before evaluation/decryption.,1
+functional-output disclosure reduction,True,True,True,7.0,7.0,0.0,1,28,The query path releases one scalar instead of the full d-dimensional aggregate; the separate model path still releases the aggregate to update the model.,1
+registered query correctness,True,True,True,7.0,7.0,0.0,1,28,The approved encrypted query releases the correct scalar only.,2
+unregistered query policy rejection,False,False,True,,,,0,28,The evaluation harness models committee authorization by rejecting a changed query fingerprint before evaluation/decryption.,2
+functional-output disclosure reduction,True,True,True,7.0,7.0,0.0,1,28,The query path releases one scalar instead of the full d-dimensional aggregate; the separate model path still releases the aggregate to update the model.,2

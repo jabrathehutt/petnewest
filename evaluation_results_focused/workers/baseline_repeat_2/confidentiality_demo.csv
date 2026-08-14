@@ -1,0 +1,2 @@
+test,protocol,passed,server_visible_object,interpretation
+baseline payload directly reveals update,baseline,True,plaintext int64/float update vector,The aggregator can directly parse each individual baseline update.

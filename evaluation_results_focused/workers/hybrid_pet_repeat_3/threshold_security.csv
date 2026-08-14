@@ -1,0 +1,6 @@
+active_party_count,threshold,expected_qualified,decryption_succeeded,recovered_value,elapsed_seconds,error
+1,3,False,False,,1.894999877549708e-05,"ValueError: Need at least 3 active parties, got 1"
+2,3,False,False,,3.7519930629059672e-06,"ValueError: Need at least 3 active parties, got 2"
+3,3,True,True,17.0,0.011633416987024248,
+4,3,True,True,17.0,0.008829619997413829,
+5,3,True,True,17.0,0.009417427994776517,

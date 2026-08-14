@@ -1,0 +1,16 @@
+test,protocol,passed,server_visible_object,interpretation,repeat
+baseline payload directly reveals update,baseline,True,plaintext int64/float update vector,The aggregator can directly parse each individual baseline update.,0
+baseline payload directly reveals update,baseline,True,plaintext int64/float update vector,The aggregator can directly parse each individual baseline update.,1
+baseline payload directly reveals update,baseline,True,plaintext int64/float update vector,The aggregator can directly parse each individual baseline update.,2
+baseline payload directly reveals update,baseline,True,plaintext int64/float update vector,The aggregator can directly parse each individual baseline update.,0
+Hybrid PET payload is ciphertext,hybrid_pet,True,two Ring-BGV ciphertext components,The aggregator receives ring ciphertext coefficients rather than plaintext slots.,0
+fresh encryptions differ,hybrid_pet,True,two encryptions of the same slot vector,Empirical randomization sanity check; this is not a proof of semantic security.,0
+fewer than threshold cannot decrypt,hybrid_pet,True,ciphertext plus fewer than t logical shares,The simulated LISS access structure rejects unqualified sets.,0
+baseline payload directly reveals update,baseline,True,plaintext int64/float update vector,The aggregator can directly parse each individual baseline update.,1
+Hybrid PET payload is ciphertext,hybrid_pet,True,two Ring-BGV ciphertext components,The aggregator receives ring ciphertext coefficients rather than plaintext slots.,1
+fresh encryptions differ,hybrid_pet,True,two encryptions of the same slot vector,Empirical randomization sanity check; this is not a proof of semantic security.,1
+fewer than threshold cannot decrypt,hybrid_pet,True,ciphertext plus fewer than t logical shares,The simulated LISS access structure rejects unqualified sets.,1
+baseline payload directly reveals update,baseline,True,plaintext int64/float update vector,The aggregator can directly parse each individual baseline update.,2
+Hybrid PET payload is ciphertext,hybrid_pet,True,two Ring-BGV ciphertext components,The aggregator receives ring ciphertext coefficients rather than plaintext slots.,2
+fresh encryptions differ,hybrid_pet,True,two encryptions of the same slot vector,Empirical randomization sanity check; this is not a proof of semantic security.,2
+fewer than threshold cannot decrypt,hybrid_pet,True,ciphertext plus fewer than t logical shares,The simulated LISS access structure rejects unqualified sets.,2

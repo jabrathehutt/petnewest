@@ -1,0 +1,50 @@
+{
+  "source_file": "smoking.csv",
+  "original_target_column": "smoking",
+  "target_column": "target",
+  "feature_columns": [
+    "age",
+    "height(cm)",
+    "weight(kg)",
+    "waist(cm)",
+    "eyesight(left)",
+    "eyesight(right)",
+    "hearing(left)",
+    "hearing(right)",
+    "systolic",
+    "relaxation",
+    "fasting blood sugar",
+    "Cholesterol",
+    "triglyceride",
+    "HDL",
+    "LDL",
+    "hemoglobin",
+    "Urine protein",
+    "serum creatinine",
+    "AST",
+    "ALT",
+    "Gtp",
+    "dental caries",
+    "gender_F",
+    "gender_M",
+    "oral_Y",
+    "tartar_N",
+    "tartar_Y"
+  ],
+  "feature_count": 27,
+  "client_names": [
+    "A",
+    "B",
+    "C",
+    "D",
+    "E"
+  ],
+  "preprocessing": {
+    "numeric_missing_values": "global median",
+    "categorical_missing_values": "global mode",
+    "categorical_encoding": "one-hot",
+    "feature_scaling": "global StandardScaler",
+    "split_method": "class-stratified round robin",
+    "random_seed": 42
+  }
+}
