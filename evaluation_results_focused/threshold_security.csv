@@ -1,16 +1,16 @@
 active_party_count,threshold,expected_qualified,decryption_succeeded,recovered_value,elapsed_seconds,error,repeat
-1,3,False,False,,1.875701127573848e-05,"ValueError: Need at least 3 active parties, got 1",0
-2,3,False,False,,3.65600863005966e-06,"ValueError: Need at least 3 active parties, got 2",0
-3,3,True,True,17.0,0.0093858930049464,,0
-4,3,True,True,17.0,0.0091701409983215,,0
-5,3,True,True,17.0,0.0090819369943346,,0
-1,3,False,False,,1.72180007211864e-05,"ValueError: Need at least 3 active parties, got 1",1
-2,3,False,False,,4.040004569105804e-06,"ValueError: Need at least 3 active parties, got 2",1
-3,3,True,True,17.0,0.0130306320061208,,1
-4,3,True,True,17.0,0.0102346849889727,,1
-5,3,True,True,17.0,0.0090566480066627,,1
-1,3,False,False,,1.894999877549708e-05,"ValueError: Need at least 3 active parties, got 1",2
-2,3,False,False,,3.7519930629059672e-06,"ValueError: Need at least 3 active parties, got 2",2
-3,3,True,True,17.0,0.0116334169870242,,2
-4,3,True,True,17.0,0.0088296199974138,,2
-5,3,True,True,17.0,0.0094174279947765,,2
+1,3,False,False,,0.0006243330000188,"ValueError: Need at least 3 active parties, got 1",0
+2,3,False,False,,2.753600006144552e-05,"ValueError: Need at least 3 active parties, got 2",0
+3,3,True,True,17.0,0.0460038060000442,,0
+4,3,True,True,17.0,0.0138462529999969,,0
+5,3,True,True,17.0,0.0170062930000085,,0
+1,3,False,False,,2.7043000045523516e-05,"ValueError: Need at least 3 active parties, got 1",1
+2,3,False,False,,2.7921999958380184e-05,"ValueError: Need at least 3 active parties, got 2",1
+3,3,True,True,17.0,0.0124791370000139,,1
+4,3,True,True,17.0,0.012767045999908,,1
+5,3,True,True,17.0,0.0155531830000654,,1
+1,3,False,False,,2.741299999797775e-05,"ValueError: Need at least 3 active parties, got 1",2
+2,3,False,False,,7.749000133117079e-06,"ValueError: Need at least 3 active parties, got 2",2
+3,3,True,True,17.0,0.0154344939999191,,2
+4,3,True,True,17.0,0.0119205700000293,,2
+5,3,True,True,17.0,0.0153646539999954,,2

@@ -1,10 +1,10 @@
 {
   "protocol": "baseline",
   "repeat": 1,
-  "protocol_wall_seconds": 16.729041437007254,
-  "protocol_rss_start_bytes": 386445312,
-  "protocol_rss_end_bytes": 413376512,
-  "protocol_peak_rss_bytes": 413376512,
-  "protocol_peak_rss_delta_bytes": 26931200,
+  "protocol_wall_seconds": 32.347650465000015,
+  "protocol_rss_start_bytes": 382373888,
+  "protocol_rss_end_bytes": 409079808,
+  "protocol_peak_rss_bytes": 409079808,
+  "protocol_peak_rss_delta_bytes": 26705920,
   "protocol_peak_python_bytes": 0
 }

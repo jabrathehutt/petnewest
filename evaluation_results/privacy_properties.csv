@@ -1,4 +1,0 @@
-property,samples,unique_ciphertexts,all_ciphertexts_unique,interpretation,baseline,hybrid_pet
-fresh-encryption randomization,20.0,20.0,True,Empirical sanity check only; uniqueness is consistent with randomized encryption but is not a proof of semantic security.,,
-server-visible individual update,,,,"Hybrid PET removes direct plaintext-update access from the honest-but-curious aggregator. The simulator still centrally stores threshold shares, so this does not test compromise of the host environment.",plaintext float vector,two BGV ciphertext components
-poisoning integrity,,,,"Encryption protects confidentiality, not correctness of a malicious client's update.",not prevented by FedAvg,not prevented by encryption
