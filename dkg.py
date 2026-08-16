@@ -29,10 +29,13 @@ class DistributedBGVSetup:
 
         b_i = -(a*s_i + p*e_i) mod q
         b   = sum_i b_i
-        s   = sum_i s_i   (implicit; never reconstructed)
+        s   = sum_i s_i   (implicit; never reconstructed by a participant)
 
-    The local s_i values are independently shared into a replicated 3-of-5
-    LISS. Evaluation keys are then generated in evaluation_keys.py.
+    Each local s_i is shared with the coefficient-wise integer LISS in
+    liss.py. By linearity, adding corresponding dealer share units yields a
+    threshold sharing of the collective secret sum_i s_i.
+
+    Evaluation keys are generated separately in evaluation_keys.py.
     """
 
     def __init__(
@@ -106,10 +109,13 @@ class DistributedBGVSetup:
         )
 
         print(
-            "[DKG] Collective public key, replicated LISS shares, "
+            "[DKG] Collective public key, coefficient-wise integer LISS shares, "
             "canonical rlk, and canonical rk generated"
         )
-        print("[DKG] Collective secret s was never reconstructed")
+        print(
+            "[DKG] Collective secret s was not reconstructed by any "
+            "simulated protocol participant"
+        )
 
         return DKGResult(
             public_key=public_key,

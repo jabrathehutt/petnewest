@@ -153,7 +153,7 @@ def decompose_ring_element(
 
 
 # =============================================================================
-# REPLICATED 3-OF-5 LISS
+# COEFFICIENT-WISE INTEGER LISS
 # =============================================================================
 
 
@@ -704,7 +704,7 @@ class ManualBGV:
 
 
 # =============================================================================
-# LISS THRESHOLD DECRYPTION WITH FRESH SMUDGING
+# INTEGER-LISS THRESHOLD DECRYPTION WITH FRESH SMUDGING
 # =============================================================================
 
 
@@ -786,4 +786,3 @@ class ThresholdDecryptor:
         active_ids: Sequence[int],
     ) -> np.ndarray:
         return self.decrypt_slots_with_audit(ciphertext, active_ids).slots
-
