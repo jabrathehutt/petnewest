@@ -8,7 +8,7 @@ import numpy as np
 from bgv import EvaluationKeys, PublicKey
 from config import P_MODULUS
 from evaluation_keys import CanonicalEvaluationKeyGenerator
-from liss import LISSShare, ReplicatedThresholdLISS
+from liss import LISSShare, ThresholdLISS
 from ring import Ring, RingElement, infinity_norm
 from simd import SIMDEncoder
 
@@ -20,7 +20,7 @@ class DKGResult:
     square_shares: Dict[int, RingElement]
     liss_shares: Dict[int, LISSShare]
     evaluation_keys: EvaluationKeys
-    liss: ReplicatedThresholdLISS
+    liss: ThresholdLISS
 
 
 class DistributedBGVSetup:
@@ -31,9 +31,10 @@ class DistributedBGVSetup:
         b   = sum_i b_i
         s   = sum_i s_i   (implicit; never reconstructed by a participant)
 
-    Each local s_i is shared with the coefficient-wise integer LISS in
+    Each local s_i is shared with the coefficient-wise threshold LISS in
     liss.py. By linearity, adding corresponding dealer share units yields a
-    threshold sharing of the collective secret sum_i s_i.
+    threshold sharing of the collective secret sum_i s_i with public
+    integer reconstruction coefficients.
 
     Evaluation keys are generated separately in evaluation_keys.py.
     """
@@ -51,7 +52,7 @@ class DistributedBGVSetup:
         self.participant_ids = tuple(participant_ids)
         self.threshold = threshold
         self.rng = np.random.default_rng(seed)
-        self.liss = ReplicatedThresholdLISS(
+        self.liss = ThresholdLISS(
             ring_q,
             participant_ids,
             threshold,
