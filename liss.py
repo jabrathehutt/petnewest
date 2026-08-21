@@ -7,31 +7,42 @@ import numpy as np
 
 from ring import Ring, RingElement
 
+# A share label is the minimal qualified set (block) to which the share unit
+# belongs.  A participant holds one share unit for every block containing it.
 ShareLabel = Tuple[int, ...]
 LISSShare = Dict[ShareLabel, RingElement]
 
 
-class ReplicatedThresholdLISS:
+class ThresholdLISS:
     """
-    Coefficient-wise replicated Linear Integer Secret Sharing (LISS)
-    for a t-of-n threshold access structure.
+    Coefficient-wise Linear Integer Secret Sharing (LISS) for a t-of-n
+    threshold access structure.
 
-    Let B_1, ..., B_L be the maximal unauthorized sets, i.e. all
-    (t-1)-subsets of the participants. For an integer secret coefficient s,
-    choose bounded integer masks r_1, ..., r_{L-1} and define
+    The concrete proof-of-concept construction is an integer monotone-span
+    realization built from the minimal qualified sets.  For every t-subset
 
-        z_{B_j} = r_j                  for j < L
-        z_{B_L} = s - sum_j r_j.
+        S = (P_{i_1}, ..., P_{i_t})
 
-    Component z_B is assigned to every participant outside B. Any qualified
-    set Q with |Q| >= t therefore contains at least one holder of every
-    component. Reconstruction uses one selected copy of every component,
-    each with integer coefficient 1.
+    one additive integer-sharing block of the same secret is created:
 
-    The same integer construction is applied coefficient-wise to the BGV
-    secret polynomial and then embedded into R_q. This is a proof-of-concept
-    adaptation of LISS to Ring-BGV; it is not a claim that Damgard--Thorbek
-    directly specify this Ring-BGV threshold-decryption construction.
+        sk_{S,i_1} = r_{S,1}
+        ...
+        sk_{S,i_{t-1}} = r_{S,t-1}
+        sk_{S,i_t} = s - sum_j r_{S,j}.
+
+    The t rows of one block therefore sum to the target vector
+    epsilon=(1,0,...,0), so a qualified set containing S reconstructs with
+    public integer coefficients d_{S,i}=1 for i in S.  Any set of at least t
+    participants contains at least one such minimal qualified block; a set
+    with fewer than t participants contains none.
+
+    The same construction is applied coefficient-wise to the Ring-BGV secret
+    polynomial and the bounded integer share units are then embedded in R_q.
+
+    This is a concrete threshold-specific LISS realization for the thesis
+    prototype.  It uses the integer-linearity and integer reconstruction
+    properties of LISS; it is not claimed to be the general construction from
+    Damgard--Thorbek.
     """
 
     def __init__(
@@ -50,16 +61,79 @@ class ReplicatedThresholdLISS:
         self.ring = ring
         self.participant_ids = ids
         self.threshold = int(threshold)
-        self.labels: Tuple[ShareLabel, ...] = tuple(
-            tuple(group)
-            for group in combinations(
-                self.participant_ids,
-                self.threshold - 1,
-            )
-        )
 
-        if not self.labels:
-            raise AssertionError("Threshold LISS must contain at least one label")
+        # Minimal qualified sets.  For the configured 3-of-5 structure there
+        # are C(5,3)=10 blocks.
+        self.blocks: Tuple[ShareLabel, ...] = tuple(
+            tuple(group)
+            for group in combinations(self.participant_ids, self.threshold)
+        )
+        if not self.blocks:
+            raise AssertionError("Threshold LISS must contain at least one block")
+
+        # Public integer-span representation used for documentation/auditing.
+        # One secret column plus (t-1) independent random columns per block.
+        self.random_columns_per_block = max(0, self.threshold - 1)
+        self.column_count = 1 + len(self.blocks) * self.random_columns_per_block
+        self.row_count = len(self.blocks) * self.threshold
+        self.epsilon = np.zeros(self.column_count, dtype=object)
+        self.epsilon[0] = 1
+
+        self.distribution_matrix = np.zeros(
+            (self.row_count, self.column_count),
+            dtype=object,
+        )
+        self.row_owners: List[int] = []
+        self.row_blocks: List[ShareLabel] = []
+
+        row_index = 0
+        for block_index, block in enumerate(self.blocks):
+            random_start = 1 + block_index * self.random_columns_per_block
+
+            if self.threshold == 1:
+                self.distribution_matrix[row_index, 0] = 1
+                self.row_owners.append(block[0])
+                self.row_blocks.append(block)
+                row_index += 1
+                continue
+
+            for position, participant in enumerate(block):
+                row = self.distribution_matrix[row_index]
+                if position < self.threshold - 1:
+                    row[random_start + position] = 1
+                else:
+                    row[0] = 1
+                    for random_offset in range(self.threshold - 1):
+                        row[random_start + random_offset] = -1
+
+                self.row_owners.append(participant)
+                self.row_blocks.append(block)
+                row_index += 1
+
+        if row_index != self.row_count:
+            raise AssertionError("LISS matrix row count mismatch")
+
+        # Verify the integer reconstruction identity block-by-block.
+        for block_index, _ in enumerate(self.blocks):
+            start = block_index * self.threshold
+            stop = start + self.threshold
+            block_sum = np.sum(
+                self.distribution_matrix[start:stop],
+                axis=0,
+                dtype=object,
+            )
+            if not np.array_equal(block_sum, self.epsilon):
+                raise AssertionError(
+                    "LISS block rows do not reconstruct the target vector"
+                )
+
+    @property
+    def share_unit_count(self) -> int:
+        return self.row_count
+
+    @property
+    def minimal_qualified_set_count(self) -> int:
+        return len(self.blocks)
 
     def _safe_mask_bound(
         self,
@@ -67,30 +141,30 @@ class ReplicatedThresholdLISS:
         max_secret_coefficient: int,
     ) -> int:
         """
-        Choose bounded integer masks so that the exact integer shares remain
-        comfortably inside the centered interval (-q/2,q/2), even after the
-        corresponding shares from all dealers are added.
+        Choose bounded integer masks so that exact integer share coefficients
+        remain comfortably inside (-q/2,q/2), including after corresponding
+        dealer share units are added.
         """
         if dealer_count < 1:
             raise ValueError("dealer_count must be positive")
         if max_secret_coefficient < 0:
             raise ValueError("max_secret_coefficient must be non-negative")
 
-        random_component_count = len(self.labels) - 1
-        if random_component_count == 0:
+        random_term_count = self.threshold - 1
+        if random_term_count == 0:
             return 0
 
         half_q = self.ring.modulus // 2
         secret_budget = dealer_count * max_secret_coefficient
         available = half_q - secret_budget - 1
-
         if available <= 0:
             raise ValueError(
                 "Ciphertext modulus is too small to embed the integer LISS shares"
             )
 
-        # Factor 2 leaves centered-representation headroom.
-        denominator = 2 * dealer_count * random_component_count
+        # The final unit in a block contains the secret minus (t-1) masks.
+        # The extra factor 2 leaves centered-representation headroom.
+        denominator = 2 * dealer_count * random_term_count
         bound = available // denominator
 
         # NumPy's integer RNG is signed-int64 based.
@@ -101,7 +175,6 @@ class ReplicatedThresholdLISS:
                 "Ciphertext modulus leaves insufficient room for bounded "
                 "integer LISS masks"
             )
-
         return int(bound)
 
     def _sample_integer_vector(
@@ -126,10 +199,6 @@ class ReplicatedThresholdLISS:
         self,
         values: Sequence[int] | np.ndarray,
     ) -> RingElement:
-        """
-        Embed exact bounded integers into R_q while preserving their centered
-        representatives.
-        """
         ints = [int(v) for v in np.asarray(values, dtype=object).reshape(-1)]
         if len(ints) != self.ring.degree:
             raise ValueError("Integer LISS vector has wrong ring degree")
@@ -140,7 +209,7 @@ class ReplicatedThresholdLISS:
                 "Integer LISS share coefficient reaches the centered q boundary"
             )
 
-        element = self.ring.element(ints)
+        element = self.ring.element(np.asarray(ints, dtype=object))
         centered = [int(v) for v in element.centered_coefficients()]
         if centered != ints:
             raise AssertionError(
@@ -162,49 +231,50 @@ class ReplicatedThresholdLISS:
             dtype=object,
         )
 
-        components_integer: Dict[ShareLabel, np.ndarray] = {}
-        running = np.zeros(self.ring.degree, dtype=object)
-
-        for label in self.labels[:-1]:
-            random_component = self._sample_integer_vector(rng, mask_bound)
-            components_integer[label] = random_component
-            running = running + random_component
-
-        final_component = secret_integer - running
-        components_integer[self.labels[-1]] = final_component
-
-        reconstructed_integer = np.zeros(self.ring.degree, dtype=object)
-        for component in components_integer.values():
-            reconstructed_integer = reconstructed_integer + component
-
-        if not np.array_equal(reconstructed_integer, secret_integer):
-            raise AssertionError("Integer LISS dealer sharing failed to reconstruct")
-
-        components: Dict[ShareLabel, RingElement] = {
-            label: self._embed_integer_vector(component)
-            for label, component in components_integer.items()
-        }
-
-        shares: Dict[int, LISSShare] = {
+        shares_integer: Dict[int, Dict[ShareLabel, np.ndarray]] = {
             participant: {}
             for participant in self.participant_ids
         }
 
-        for label, component in components.items():
-            for participant in self.participant_ids:
-                if participant not in label:
-                    shares[participant][label] = component
+        for block in self.blocks:
+            if self.threshold == 1:
+                shares_integer[block[0]][block] = secret_integer.copy()
+                continue
 
-        return shares
+            masks = [
+                self._sample_integer_vector(rng, mask_bound)
+                for _ in range(self.threshold - 1)
+            ]
+            running = np.zeros(self.ring.degree, dtype=object)
+
+            for participant, mask in zip(block[:-1], masks):
+                shares_integer[participant][block] = mask
+                running = running + mask
+
+            final_share = secret_integer - running
+            shares_integer[block[-1]][block] = final_share
+
+            reconstructed = np.zeros(self.ring.degree, dtype=object)
+            for participant in block:
+                reconstructed = reconstructed + shares_integer[participant][block]
+            if not np.array_equal(reconstructed, secret_integer):
+                raise AssertionError(
+                    "Integer LISS block failed to reconstruct dealer secret"
+                )
+
+        return {
+            participant: {
+                block: self._embed_integer_vector(value)
+                for block, value in units.items()
+            }
+            for participant, units in shares_integer.items()
+        }
 
     def share_secret(
         self,
         secret: RingElement,
         rng: np.random.Generator,
     ) -> Dict[int, LISSShare]:
-        """
-        Share one ring secret coefficient-wise using bounded integer masks.
-        """
         if secret.ring != self.ring:
             raise ValueError("Secret ring mismatch")
 
@@ -224,9 +294,10 @@ class ReplicatedThresholdLISS:
         rng: np.random.Generator,
     ) -> Dict[int, LISSShare]:
         """
-        LISS-share every local s_i independently and add corresponding units.
-        By linearity, the result shares s = sum_i s_i without using s as an
-        input to the sharing procedure.
+        LISS-share every local s_i independently and add corresponding share
+        units.  By linearity, the result is a sharing of s=sum_i s_i without
+        ever supplying the reconstructed collective secret to the sharing
+        algorithm.
         """
         if not local_secrets:
             raise ValueError("No local secrets supplied")
@@ -255,9 +326,9 @@ class ReplicatedThresholdLISS:
 
         result: Dict[int, LISSShare] = {
             participant: {
-                label: self.ring.zero()
-                for label in self.labels
-                if participant not in label
+                block: self.ring.zero()
+                for block in self.blocks
+                if participant in block
             }
             for participant in self.participant_ids
         }
@@ -269,11 +340,10 @@ class ReplicatedThresholdLISS:
                 mask_bound,
             )
             for receiver, units in dealer_shares.items():
-                for label, value in units.items():
-                    result[receiver][label] = result[receiver][label].add(value)
+                for block, value in units.items():
+                    result[receiver][block] = result[receiver][block].add(value)
 
-        # Simulator-only algebraic assertion. Normal threshold decryption still
-        # consumes distributed share units and does not reconstruct s.
+        # Simulator-only algebraic assertion.
         expected = self.ring.zero()
         for local_secret in local_secrets.values():
             expected = expected.add(local_secret)
@@ -290,18 +360,15 @@ class ReplicatedThresholdLISS:
 
         return result
 
-    def choose_units(
-        self,
-        active_ids: Sequence[int],
-        shares: Mapping[int, LISSShare],
-    ) -> Dict[int, List[RingElement]]:
+    def selected_block(self, active_ids: Sequence[int]) -> ShareLabel:
         """
-        Select exactly one available copy of every LISS component.
+        Return a canonical minimal qualified subset contained in active_ids.
 
-        The public reconstruction coefficient for each selected component is 1.
+        Larger qualified sets therefore also reconstruct: the combiner simply
+        uses one contained t-subset and sets the reconstruction coefficient of
+        every other active participant to zero.
         """
         active = tuple(int(pid) for pid in active_ids)
-
         if len(set(active)) != len(active):
             raise ValueError("Active participant identifiers must be unique")
         if any(pid not in self.participant_ids for pid in active):
@@ -311,27 +378,59 @@ class ReplicatedThresholdLISS:
                 f"Need at least {self.threshold} active parties, got {len(active)}"
             )
 
-        selected: Dict[int, List[RingElement]] = {
-            participant: []
-            for participant in active
+        active_set = set(active)
+        for block in self.blocks:
+            if set(block).issubset(active_set):
+                return block
+
+        raise ValueError("Qualified set contains no reconstructing LISS block")
+
+    def reconstruction_coefficients(
+        self,
+        active_ids: Sequence[int],
+    ) -> Dict[int, int]:
+        """
+        Public participant-level reconstruction coefficients d_{Q,i} for the
+        canonical selected minimal qualified block.
+
+        In this concrete threshold LISS, d_{Q,i}=1 for the t participants of
+        the selected block and d_{Q,i}=0 for any additional active members.
+        """
+        block = set(self.selected_block(active_ids))
+        return {
+            int(pid): (1 if int(pid) in block else 0)
+            for pid in active_ids
         }
 
-        for label in self.labels:
-            owner = next(
-                (
-                    participant
-                    for participant in active
-                    if label in shares[participant]
-                ),
-                None,
-            )
-            if owner is None:
-                raise ValueError(
-                    f"Qualified set cannot reconstruct LISS component {label}"
-                )
-            selected[owner].append(shares[owner][label])
+    def reconstruction_plan(
+        self,
+        active_ids: Sequence[int],
+        shares: Mapping[int, LISSShare],
+    ) -> Dict[int, Tuple[RingElement, int]]:
+        """
+        Return the concrete share unit and public integer coefficient used for
+        each active participant.  Only the selected t-subset has nonzero
+        coefficients.
+        """
+        block = self.selected_block(active_ids)
+        coefficients = self.reconstruction_coefficients(active_ids)
 
-        return selected
+        plan: Dict[int, Tuple[RingElement, int]] = {}
+        for participant in active_ids:
+            pid = int(participant)
+            coefficient = int(coefficients[pid])
+            if coefficient == 0:
+                continue
+            if pid not in shares or block not in shares[pid]:
+                raise ValueError(
+                    f"Participant {pid} does not hold required LISS share "
+                    f"for block {block}"
+                )
+            plan[pid] = (shares[pid][block], coefficient)
+
+        if len(plan) != self.threshold:
+            raise AssertionError("LISS reconstruction plan has wrong size")
+        return plan
 
     def reconstruct(
         self,
@@ -340,26 +439,28 @@ class ReplicatedThresholdLISS:
     ) -> RingElement:
         """
         Test/helper reconstruction from a qualified set.
-
-        Threshold decryption should use choose_units() instead, so the
-        collective secret need not be reconstructed during normal execution.
         """
-        selected = self.choose_units(active_ids, shares)
+        plan = self.reconstruction_plan(active_ids, shares)
         result = self.ring.zero()
-
-        for participant in active_ids:
-            for unit in selected.get(int(participant), []):
-                result = result.add(unit)
-
+        for share_unit, coefficient in plan.values():
+            result = result.add(share_unit.scalar_mul(coefficient))
         return result
+
+    def reconstruction_weight(
+        self,
+        active_ids: Sequence[int],
+    ) -> int:
+        """
+        Sum of absolute public integer reconstruction coefficients:
+            Lambda_LISS(Q) = sum_i |d_{Q,i}|.
+        """
+        coefficients = self.reconstruction_coefficients(active_ids)
+        return sum(abs(int(value)) for value in coefficients.values())
 
     def contributing_party_count(
         self,
         active_ids: Sequence[int],
         shares: Mapping[int, LISSShare],
     ) -> int:
-        """
-        Number of active parties assigned at least one selected share unit.
-        """
-        selected = self.choose_units(active_ids, shares)
-        return sum(1 for units in selected.values() if units)
+        return len(self.reconstruction_plan(active_ids, shares))
+
