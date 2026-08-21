@@ -126,7 +126,7 @@ class RingElement:
         ring: Ring,
         coefficients: Sequence[int] | np.ndarray,
     ) -> None:
-        array = np.asarray(coefficients).reshape(-1)
+        array = np.asarray(coefficients, dtype=object).reshape(-1)
         padded = np.zeros(ring.degree, dtype=object)
 
         for index, value in enumerate(array):
