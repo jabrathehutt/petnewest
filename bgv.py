@@ -6,7 +6,7 @@ from typing import List, Mapping, Sequence, Tuple
 import numpy as np
 
 from config import GADGET_BASE, P_MODULUS, SMUDGING_BOUND
-from liss import LISSShare, ReplicatedThresholdLISS
+from liss import LISSShare, ThresholdLISS
 from ring import (
     Ring,
     RingElement,
@@ -714,7 +714,7 @@ class ThresholdDecryptor:
         ring_q: Ring,
         ring_p: Ring,
         encoder: SIMDEncoder,
-        liss: ReplicatedThresholdLISS,
+        liss: ThresholdLISS,
         shares: Mapping[int, LISSShare],
         seed: int,
     ):
@@ -730,23 +730,25 @@ class ThresholdDecryptor:
         ciphertext: Ciphertext,
         active_ids: Sequence[int],
     ) -> DecryptionAudit:
-        selected = self.liss.choose_units(active_ids, self.shares)
+        reconstruction_plan = self.liss.reconstruction_plan(
+            active_ids,
+            self.shares,
+        )
         combined = self.ring_q.zero()
 
-        for participant in active_ids:
-            selected_units = selected.get(participant, [])
-            if not selected_units:
-                continue
-
-            aggregate_share = self.ring_q.zero()
-            for unit in selected_units:
-                aggregate_share = aggregate_share.add(unit)
-
+        for participant, (share_unit, reconstruction_coefficient) in (
+            reconstruction_plan.items()
+        ):
             smudging = self.ring_q.sample_smudging(self.rng)
-            partial = ciphertext.c1.mul(aggregate_share).add(
+            partial = ciphertext.c1.mul(share_unit).add(
                 smudging.scalar_mul(P_MODULUS)
             )
-            combined = combined.add(partial)
+
+            # Apply the public integer LISS reconstruction coefficient d_{Q,i}
+            # to the complete partial decryption, including its smudging term.
+            combined = combined.add(
+                partial.scalar_mul(reconstruction_coefficient)
+            )
 
         representative = ciphertext.c0.add(combined)
         centered_q = representative.centered_coefficients()
